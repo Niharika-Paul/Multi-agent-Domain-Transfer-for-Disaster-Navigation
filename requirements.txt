@@ -2,3 +2,5 @@ google-genai
 python-dotenv
 geopandas
 scipy
+rtree
+numpy
