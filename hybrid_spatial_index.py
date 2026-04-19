@@ -34,7 +34,7 @@ Usage
 -----
     from hybrid_spatial_index import HybridTokyoGraph
 
-    graph = HybridTokyoGraph("tokyo_full_graph_updated.json")
+    graph = HybridTokyoGraph("tokyo_graph.json")
     graph.build_index()          # builds R-tree + KD-tree + snaps facilities
 
     disaster = graph.apply_disaster("earthquake", (35.68, 139.76), 2000, 0.8)
