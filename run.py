@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 from google import genai
-from dataset_connector import TokyoGraph
+from hybrid_spatial_index import HybridTokyoGraph
 
 # Load API key
 load_dotenv()
@@ -12,13 +12,14 @@ MODEL_NAME = "gemini-2.5-flash"
 # ------------------------
 # LOAD DATASET
 # ------------------------
-graph = TokyoGraph("tokyo_full_graph_updated.json")
+graph = HybridTokyoGraph("tokyo_full_graph_updated.json")
+graph.build_index()   # builds R-tree + KD-tree + snaps all facilities
 
 # Disaster epicentre — change these to move the disaster zone
 DISASTER_LAT  = 35.68
 DISASTER_LON  = 139.76
 DISASTER_TYPE = "earthquake"   # or "flood"
-SEVERITY      = 0.8            # 0.0 (minor) → 1.0 (catastrophic)
+SEVERITY      = 0.3            # 0.0 (minor) → 1.0 (catastrophic)
 RADIUS_M      = 2000           # affected radius in metres
 AGENT_RADIUS_M = 800           # each agent's local observation radius
 
@@ -105,18 +106,26 @@ Nearest fire station: id={nearest_firestation['id']}, lat={nearest_firestation['
     if outside_fs and outside_hosp:
         src_fs   = min(outside_fs,   key=lambda n: _deg_dist(n, centre_node))
         dst_hosp = min(outside_hosp, key=lambda n: _deg_dist(n, centre_node))
-        fs_road   = graph.nearest_road_node(src_fs["lat"],   src_fs["lon"])
-        hosp_road = graph.nearest_road_node(dst_hosp["lat"], dst_hosp["lon"])
-        if fs_road and hosp_road:
-            path = graph.shortest_path(fs_road["id"], hosp_road["id"], avoid_damaged=True)
+        path = graph.shortest_path_astar(src_fs["id"], dst_hosp["id"], avoid_damaged=True)
 
     if path:
         dist_km = graph.path_distance_m(path) / 1000
-        route_hint = (f"Computed safe route: {len(path)} road nodes, {dist_km:.2f} km "
+        tt_min  = graph.path_travel_time_s(path) / 60
+        route_hint = (f"Computed safe route (A*): {len(path)} road nodes, {dist_km:.2f} km, "
+                      f"~{tt_min:.1f} min travel time "
                       f"(fire station {src_fs['id']} to hospital {dst_hosp['id']}, "
                       f"avoiding damaged roads)")
     else:
-        route_hint = "No safe route found — roads into the disaster zone may be fully blocked."
+        staging = graph.find_staging_zones((DISASTER_LAT, DISASTER_LON), RADIUS_M)
+        if staging:
+            zone_str = "; ".join(
+                f"fire station {z['id']} at {z['dist_to_epicentre_m']}m perimeter"
+                for z in staging
+            )
+            route_hint = (f"No ground route found. Recommended staging zones: {zone_str}. "
+                          f"Deploy aerial rescue from these positions.")
+        else:
+            route_hint = "No safe route found — roads into the disaster zone may be fully blocked."
 
     task_text = f"""
 Coordinate disaster response for {DISASTER_TYPE} at ({DISASTER_LAT}, {DISASTER_LON}).
