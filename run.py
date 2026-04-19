@@ -299,7 +299,7 @@ def main():
     args = parse_args()
 
     print("\n  Loading Tokyo graph and building spatial index...")
-    graph = HybridTokyoGraph("dataset/tokyo_full_graph_updated.json")
+    graph = HybridTokyoGraph("dataset/tokyo_graph.json")
     graph.build_index()
 
     print(f"\n  Active configuration:")
