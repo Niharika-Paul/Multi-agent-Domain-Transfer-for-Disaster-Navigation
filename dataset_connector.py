@@ -5,7 +5,7 @@ Connects the Tokyo urban graph dataset to the multi-agent disaster
 simulation. Provides a clean API that mapping, risk, resource, and
 routing agents can call to query the environment.
 
-Dataset summary (tokyo_full_graph_updated.json):
+Dataset summary (tokyo_graph.json):
   - 87,091 nodes  → road_node (76,609), building (10,000),
                      hospital (292), fire_station (190)
   - 197,677 edges → weighted by length (metres), typed by road_type
@@ -42,7 +42,7 @@ class TokyoGraph:
     Loads the Tokyo urban graph and exposes query methods used by agents.
 
     Usage:
-        graph = TokyoGraph("tokyo_full_graph_updated.json")
+        graph = TokyoGraph("tokyo_graph.json")
 
         # --- Mapping agent ---
         nodes = graph.get_nodes_in_radius(35.68, 139.76, radius_m=1000)
