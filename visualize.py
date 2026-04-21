@@ -289,3 +289,42 @@ def generate_map(graph, cfg: dict, disaster_summary: dict, world: dict, output_p
 
     m.save(output_path)
     return output_path
+
+    # -----------------------------------------------------------------------
+    # 8. AGENT POSITIONS (from swarm simulation)
+    # -----------------------------------------------------------------------
+    agent_group = folium.FeatureGroup(name="Agents", show=True)
+
+    try:
+        import json
+        with open("agents_positions.json") as f:
+            agents = json.load(f)
+
+        # Show last timestep only (for now)
+        latest_time = max(a["time"] for a in agents)
+        current_agents = [a for a in agents if a["time"] == latest_time]
+
+        for a in current_agents:
+            color = "blue" if a["type"] == "evac" else "orange"
+
+            if a.get("event") == "reroute":
+                color = "red"
+
+            folium.CircleMarker(
+                location=[a["lat"], a["lon"]],
+                radius=6,
+                color=color,
+                fill=True,
+                fill_color=color,
+                fill_opacity=0.9,
+                tooltip=f"""
+                Agent {a['agent_id']}<br>
+                Status: {a['status']}<br>
+                Event: {a.get('event','None')}
+                """
+            ).add_to(agent_group)
+
+    except Exception as e:
+        print("Agent loading failed:", e)
+
+    agent_group.add_to(m)
